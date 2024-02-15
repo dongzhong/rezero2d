@@ -13,14 +13,17 @@ Canvas::~Canvas() = default;
 void Canvas::Begin(const std::shared_ptr<Bitmap>& bitmap) {
   REZERO_CHECK(!bitmap_);
 
-  bitmap_ = bitmap;
+  if (bitmap->flag_.test_and_set()) {
+    REZERO_LOG(ERROR) << "Bitmap has been occupied.";
+    return;
+  }
 
-  // TODO: Lock the bitmap
+  bitmap_ = bitmap;
 }
 
 void Canvas::End() {
-  if (!bitmap_) {
-    // TODO: Unlock the bitmap
+  if (bitmap_) {
+    bitmap_->flag_.clear();
   }
 
   bitmap_ = nullptr;
