@@ -2,6 +2,8 @@
 
 #include "rezero2d/codec/bmp_codec.h"
 
+#include <cstring>
+
 #include "rezero2d/base/api.h"
 #include "rezero2d/utils/int_operations.h"
 

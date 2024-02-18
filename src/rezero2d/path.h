@@ -3,6 +3,7 @@
 #ifndef REZERO_PATH_H_
 #define REZERO_PATH_H_
 
+#include <cstdint>
 #include <vector>
 
 #include "rezero2d/base/macros.h"

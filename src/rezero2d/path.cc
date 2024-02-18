@@ -2,6 +2,8 @@
 
 #include "rezero2d/path.h"
 
+#include <limits>
+
 namespace rezero {
 
 Path::Path() = default;

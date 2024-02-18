@@ -3,6 +3,7 @@
 #ifndef REZERO_BASE_LOGGING_H_
 #define REZERO_BASE_LOGGING_H_
 
+#include <cstring>
 #include <sstream>
 #include <string>
 
