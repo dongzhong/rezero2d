@@ -24,6 +24,8 @@ set(REZERO2D_SOURCE
   rezero2d/format.h
   rezero2d/geometry.cc
   rezero2d/geometry.h
+  rezero2d/linearizer.cc
+  rezero2d/linearizer.h
   rezero2d/path.cc
   rezero2d/path.h)
 

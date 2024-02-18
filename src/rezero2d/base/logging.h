@@ -64,4 +64,16 @@ class LogMessage {
                        .stream(),                                               \
                     !(condition))
 
+#define REZERO_EAT_STREAM_PARAMETERS(ignored) \
+  true || (ignored)                           \
+      ? (void)0                               \
+      : ::rezero::LogMessageVoidify() &       \
+            ::rezero::LogMessage(::rezero::REZERO_LOG_FATAL, 0, 0, nullptr).stream()
+
+#ifndef NDEBUG
+#define REZERO_DCHECK(condition) REZERO_CHECK(condition)
+#else
+#define REZERO_DCHECK(condition) REZERO_EAT_STREAM_PARAMETERS(condition)
+#endif
+
 #endif // REZERO_BASE_LOGGING_H_

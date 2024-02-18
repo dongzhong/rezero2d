@@ -3,6 +3,8 @@
 #ifndef REZERO_GEOMETRY_H_
 #define REZERO_GEOMETRY_H_
 
+#include <vector>
+
 namespace rezero {
 
 class Point {
@@ -104,6 +106,59 @@ class Rect {
   double y_ = 0.0;
   double w_ = 0.0;
   double h_ = 0.0;
+};
+
+class Contour {
+ public:
+  Contour();
+  ~Contour();
+
+  Contour(const Contour& other);
+  Contour& operator=(const Contour& other);
+
+  Contour(Contour&& other);
+  Contour& operator=(Contour&& other);
+
+  void Reset();
+
+  void AppendPoint(const Point& p);
+  void AppendPoint(double x_value, double y_value);
+
+  void AppendPoints(const std::vector<Point>& points);
+
+  bool IsValid() const { return points_.size() >= 3; }
+
+  const std::vector<Point>& GetPoints() const { return points_; }
+
+ private:
+  std::vector<Point> points_;
+};
+
+class Polygon {
+ public:
+  Polygon();
+  ~Polygon();
+
+  Polygon(const Polygon& other);
+  Polygon& operator=(const Polygon& other);
+
+  Polygon(Polygon&& other);
+  Polygon& operator=(Polygon&& other);
+
+  void Reset();
+
+  void NewContour();
+
+  void AppendPoint(const Point& point);
+
+  void AppendPoints(const std::vector<Point>& points);
+
+  void Validate();
+
+  const std::vector<Contour>& GetContours() const { return contours_; }
+
+ private:
+  std::vector<Contour> contours_;
 };
 
 } // namespace rezero

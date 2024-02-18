@@ -11,6 +11,8 @@
 
 namespace rezero {
 
+class Linearizer;
+
 class Path {
  public:
   Path();
@@ -40,12 +42,14 @@ class Path {
     kQuad   = 2,
     kCubic  = 3,
     kConic  = 4,
-    kClose  = 5,
-    kWeight = 6,
+    kWeight = 5,
   };
 
   std::vector<CommandType> commands_;
   std::vector<Point> points_;
+  Point begin_point_;
+
+  friend class Linearizer;
 
   REZERO_DISALLOW_COPY_ASSIGN_AND_MOVE(Path);
 };

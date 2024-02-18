@@ -2,6 +2,8 @@
 
 #include "rezero2d/geometry.h"
 
+#include <algorithm>
+
 namespace rezero {
 
 Point::Point() = default;
@@ -184,6 +186,102 @@ void Rect::SetWidth(double w_value) {
 
 void Rect::SetHeight(double h_value) {
   h_ = h_value;
+}
+
+Contour::Contour() = default;
+
+Contour::~Contour() = default;
+
+Contour::Contour(const Contour& other) {
+  points_ = other.points_;
+}
+
+Contour& Contour::operator=(const Contour& other) {
+  points_ = other.points_;
+  return *this;
+}
+
+Contour::Contour(Contour&& other) {
+  points_.assign(other.points_.begin(), other.points_.end());
+  other.points_.clear();
+}
+
+Contour& Contour::operator=(Contour&& other) {
+  points_.assign(other.points_.begin(), other.points_.end());
+  other.points_.clear();
+  return *this;
+}
+
+void Contour::Reset() {
+  points_.clear();
+}
+
+void Contour::AppendPoint(const Point& p) {
+  points_.push_back(p);
+}
+
+void Contour::AppendPoint(double x_value, double y_value) {
+  points_.emplace_back(x_value, y_value);
+}
+
+void Contour::AppendPoints(const std::vector<Point>& points) {
+  for (auto&& p : points) {
+    points_.push_back(p);
+  }
+}
+
+Polygon::Polygon() = default;
+
+Polygon::~Polygon() = default;
+
+Polygon::Polygon(const Polygon& other) {
+  contours_ = other.contours_;
+}
+
+Polygon& Polygon::operator=(const Polygon& other) {
+  contours_ = other.contours_;
+  return *this;
+}
+
+Polygon::Polygon(Polygon&& other) {
+  contours_.assign(other.contours_.begin(), other.contours_.end());
+  other.contours_.clear();
+}
+
+Polygon& Polygon::operator=(Polygon&& other) {
+  contours_.assign(other.contours_.begin(), other.contours_.end());
+  other.contours_.clear();
+  return *this;
+}
+
+void Polygon::Reset() {
+  contours_.clear();
+}
+
+void Polygon::NewContour() {
+  contours_.push_back({});
+}
+
+void Polygon::AppendPoint(const Point& point) {
+  if (contours_.empty()) {
+    NewContour();
+  }
+
+  contours_.back().AppendPoint(point);
+}
+
+void Polygon::AppendPoints(const std::vector<Point>& points) {
+  if (contours_.empty()) {
+    NewContour();
+  }
+
+  contours_.back().AppendPoints(points);
+}
+
+void Polygon::Validate() {
+  auto iter = std::remove_if(contours_.begin(), contours_.end(),
+                             [](const Contour& contour) { return !contour.IsValid(); });
+  contours_.erase(iter, contours_.end());
 }
 
 } // namespace rezero

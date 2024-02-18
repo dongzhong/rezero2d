@@ -6,18 +6,22 @@
 
 namespace rezero {
 
-Path::Path() = default;
+Path::Path() {
+  MoveTo(0.0, 0.0);
+}
 
 Path::~Path() = default;
 
 void Path::MoveTo(const Point& point) {
   commands_.push_back(CommandType::kMove);
   points_.push_back(point);
+  begin_point_ = point;
 }
 
 void Path::MoveTo(double x, double y) {
   commands_.push_back(CommandType::kMove);
   points_.emplace_back(x, y);
+  begin_point_ = Point(x, y);
 }
 
 void Path::LineTo(const Point& point) {
@@ -87,8 +91,8 @@ void Path::ConicTo(double x1, double y1, double x2, double y2, double weight) {
 }
 
 void Path::Close() {
-  commands_.push_back(CommandType::kClose);
-  points_.emplace_back(std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::quiet_NaN());
+  commands_.push_back(CommandType::kOnPath);
+  points_.emplace_back(begin_point_);
 }
 
 } // namespace rezero
