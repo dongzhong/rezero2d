@@ -2,6 +2,7 @@
 
 #include "rezero2d/linearizer.h"
 
+#include <cmath>
 #include <map>
 
 #include "rezero2d/base/logging.h"
@@ -243,11 +244,104 @@ bool Linearizer::CubicTo(const Point& p0, const Point& p1, const Point& p2,
   return true;
 }
 
+namespace {
+
+class ConicFunction {
+ public:
+  ConicFunction() = default;
+
+  ConicFunction(const Point& p0, const Point& p1, const Point& p2, double weight)
+      : p0_(p0), p1_(p1), p2_(p2), weight_(weight) {}
+
+  std::vector<std::tuple<Point, Point, Point>> DivideAsQuads(double tolerance) {
+    auto tolerance_2 = tolerance * tolerance;
+
+    std::vector<ConicFunction> divided_conics;
+    std::vector<bool> need_subdivisions;
+    bool need_subdivision = false;
+
+    divided_conics.push_back(*this);
+    need_subdivisions.push_back(tolerance_2 < CalculateError2());
+
+    do {
+      std::vector<ConicFunction> divided_conics_res;
+      std::vector<bool> need_subdivisions_res;
+
+      for (std::uint32_t i = 0; i < divided_conics.size(); ++i) {
+        if (need_subdivisions[i]) {
+          ConicFunction out[2];
+          divided_conics[i].DivideIntoTwo(out);
+
+          divided_conics_res.push_back(out[0]);
+          divided_conics_res.push_back(out[1]);
+
+          bool need_subdivision_1 = tolerance_2 < out[0].CalculateError2();
+          bool need_subdivision_2 = tolerance_2 < out[1].CalculateError2();
+          need_subdivisions_res.push_back(need_subdivision_1);
+          need_subdivisions_res.push_back(need_subdivision_2);
+          need_subdivision = need_subdivision_1 || need_subdivision_2;
+        } else {
+          divided_conics_res.push_back(divided_conics[i]);
+          need_subdivisions_res.push_back(false);
+        }
+      }
+
+      if (need_subdivision) {
+        divided_conics = divided_conics_res;
+        need_subdivisions = need_subdivisions_res;
+      }
+    } while (need_subdivision);
+
+    std::vector<std::tuple<Point, Point, Point>> quads;
+    for (auto&& conic : divided_conics) {
+      quads.emplace_back(conic.p0_, conic.p1_, conic.p2_);
+    }
+    return quads;
+  }
+
+ private:
+  double CalculateError2() {
+    auto a = weight_ - 1.0;
+    auto k = a / (4.0 * (2.0 + a));
+    auto lx = p0_.GetX() - p1_.GetX() - p1_.GetX() + p2_.GetX();
+    auto ly = p0_.GetY() - p1_.GetY() - p1_.GetY() + p2_.GetY();
+    return k * k * (lx * lx + ly * ly);
+  }
+
+  void DivideIntoTwo(ConicFunction* out) {
+    auto weight_plus_1 = 1.0 + weight_;
+    auto weight1 = std::sqrt(weight_plus_1 * 0.5);
+    Point p11 = { (p0_.GetX() + weight_ * p1_.GetX()) / weight_plus_1,
+                  (p0_.GetY() + weight_ * p1_.GetY()) / weight_plus_1 };
+    Point p13 = { (weight_ * p1_.GetX() + p2_.GetX()) / weight_plus_1,
+                  (weight_ * p1_.GetY() + p2_.GetY()) / weight_plus_1 };
+    Point p12 = { (p11.GetX() + p13.GetX()) * 0.5,
+                  (p11.GetY() + p13.GetY()) * 0.5 };
+    out[0] = { p0_, p11, p12, weight1 };
+    out[1] = { p12, p13, p2_, weight1 };
+  }
+
+  Point p0_;
+  Point p1_;
+  Point p2_;
+  double weight_;
+};
+
+} // namespace
+
 bool Linearizer::ConicTo(const Point& p0, const Point& p1, const Point& p2,
                          double weight, double tolerance, Polygon& out_polygon) {
-  // TODO:
+  ConicFunction conic_function(p0, p1, p2, weight);
 
-  return true;
+  auto quads_points = conic_function.DivideAsQuads(tolerance);
+
+  bool success = true;
+  for (auto&& quad_ps : quads_points) {
+    success = QuadTo(std::get<0>(quad_ps), std::get<1>(quad_ps), std::get<2>(quad_ps), tolerance, out_polygon)
+              && success;
+  }
+
+  return success;
 }
 
 } // namespace rezero
