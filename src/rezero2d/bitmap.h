@@ -15,6 +15,8 @@ namespace rezero {
 
 enum class CodecType : std::uint8_t;
 
+class Canvas;
+
 class Bitmap {
  public:
   Bitmap();
@@ -39,6 +41,8 @@ class Bitmap {
   void* data_;
 
   std::atomic_flag flag_ = ATOMIC_FLAG_INIT;
+
+  friend class Canvas;
 
   REZERO_DISALLOW_COPY_ASSIGN_AND_MOVE(Bitmap);
 };

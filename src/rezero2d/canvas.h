@@ -13,7 +13,17 @@ class Canvas {
   Canvas();
   ~Canvas();
 
+  bool Begin(const std::shared_ptr<Bitmap>& bitmap);
+
+  void End();
+
+  bool FillPath(const std::shared_ptr<Path>& path);
+
+  bool StrokePath(const std::shared_ptr<Path>& path);
+
  private:
+  std::shared_ptr<Bitmap> bitmap_ = nullptr;
+
   REZERO_DISALLOW_COPY_ASSIGN_AND_MOVE(Canvas);
 };
 

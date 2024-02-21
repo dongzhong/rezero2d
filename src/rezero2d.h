@@ -9,6 +9,7 @@
 #include "rezero2d/codec.h"
 #include "rezero2d/data.h"
 #include "rezero2d/format.h"
+#include "rezero2d/geometry.h"
 #include "rezero2d/path.h"
 
 #endif // REZERO_REZERO_2D
