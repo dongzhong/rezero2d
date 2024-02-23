@@ -11,6 +11,8 @@
 
 namespace rezero {
 
+class EdgeBuilder;
+
 class Path {
  public:
   Path();
@@ -36,18 +38,10 @@ class Path {
   void Clear();
 
  private:
-  enum class CommandType : std::uint8_t {
-    kMove   = 0,
-    kOnPath = 1,
-    kQuad   = 2,
-    kCubic  = 3,
-    kConic  = 4,
-    kWeight = 5,
-    kClose  = 6,
-  };
-
   std::vector<Point> points_;
-  std::vector<CommandType> commands_;
+  std::vector<std::uint8_t> commands_;
+
+  friend class EdgeBuilder;
 
   REZERO_DISALLOW_COPY_ASSIGN_AND_MOVE(Path);
 };

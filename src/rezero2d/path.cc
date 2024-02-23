@@ -4,7 +4,15 @@
 
 #include <limits>
 
+#include "rezero2d/edge_builder.h"
+
 namespace rezero {
+
+namespace {
+
+using CommandTypeUnderlying = std::underlying_type<CommandType>::type;
+
+} // namespace
 
 Path::Path() {
   MoveTo(0.0, 0.0);
@@ -14,7 +22,7 @@ Path::~Path() = default;
 
 void Path::MoveTo(const Point& point) {
   points_.push_back(point);
-  commands_.push_back(CommandType::kMove);
+  commands_.push_back((CommandTypeUnderlying)CommandType::kMove);
 }
 
 void Path::MoveTo(double x, double y) {
@@ -23,7 +31,7 @@ void Path::MoveTo(double x, double y) {
 
 void Path::LineTo(const Point& point) {
   points_.push_back(point);
-  commands_.push_back(CommandType::kOnPath);
+  commands_.push_back((CommandTypeUnderlying)CommandType::kOnPath);
 }
 
 void Path::LineTo(double x, double y) {
@@ -33,8 +41,8 @@ void Path::LineTo(double x, double y) {
 void Path::QuadTo(const Point& point1, const Point& point2) {
   points_.push_back(point1);
   points_.push_back(point2);
-  commands_.push_back(CommandType::kQuad);
-  commands_.push_back(CommandType::kOnPath);
+  commands_.push_back((CommandTypeUnderlying)CommandType::kQuad);
+  commands_.push_back((CommandTypeUnderlying)CommandType::kOnPath);
 }
 
 void Path::QuadTo(double x1, double y1, double x2, double y2) {
@@ -45,9 +53,9 @@ void Path::CubicTo(const Point& point1, const Point& point2, const Point& point3
   points_.push_back(point1);
   points_.push_back(point2);
   points_.push_back(point3);
-  commands_.push_back(CommandType::kCubic);
-  commands_.push_back(CommandType::kCubic);
-  commands_.push_back(CommandType::kOnPath);
+  commands_.push_back((CommandTypeUnderlying)CommandType::kCubic);
+  commands_.push_back((CommandTypeUnderlying)CommandType::kCubic);
+  commands_.push_back((CommandTypeUnderlying)CommandType::kOnPath);
 }
 
 void Path::CubicTo(double x1, double y1, double x2, double y2, double x3, double y3) {
@@ -58,9 +66,9 @@ void Path::ConicTo(const Point& point1, const Point& point2, double weight) {
   points_.push_back(point1);
   points_.emplace_back(weight, weight);
   points_.push_back(point2);
-  commands_.push_back(CommandType::kConic);
-  commands_.push_back(CommandType::kWeight);
-  commands_.push_back(CommandType::kOnPath);
+  commands_.push_back((CommandTypeUnderlying)CommandType::kConic);
+  commands_.push_back((CommandTypeUnderlying)CommandType::kWeight);
+  commands_.push_back((CommandTypeUnderlying)CommandType::kOnPath);
 }
 
 void Path::ConicTo(double x1, double y1, double x2, double y2, double weight) {
@@ -69,7 +77,7 @@ void Path::ConicTo(double x1, double y1, double x2, double y2, double weight) {
 
 void Path::Close() {
   points_.emplace_back(std::numeric_limits<double>::max(), std::numeric_limits<double>::max());
-  commands_.push_back(CommandType::kClose);
+  commands_.push_back((CommandTypeUnderlying)CommandType::kClose);
 }
 
 void Path::Clear() {

@@ -20,6 +20,8 @@ set(REZERO2D_SOURCE
   rezero2d/codec.h
   rezero2d/data.cc
   rezero2d/data.h
+  rezero2d/edge_builder.cc
+  rezero2d/edge_builder.h
   rezero2d/format.cc
   rezero2d/format.h
   rezero2d/geometry.cc

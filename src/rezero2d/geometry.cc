@@ -2,6 +2,8 @@
 
 #include "rezero2d/geometry.h"
 
+#include <utility>
+
 namespace rezero {
 
 Point::Point() = default;
@@ -57,6 +59,21 @@ void Point::SetX(double x_value) {
 
 void Point::SetY(double y_value) {
   y_ = y_value;
+}
+
+Rect::Rect() = default;
+
+Rect::~Rect() = default;
+
+Rect::Rect(const Rect& other) = default;
+
+Rect& Rect::operator=(const Rect& other) = default;
+
+Rect::Rect(Rect&& other) : min_(std::move(other.min_)), max_(std::move(other.max_)) {}
+
+Rect& Rect::operator=(Rect&& other) {
+  *this = std::move(other);
+  return *this;
 }
 
 } // namespace rezero

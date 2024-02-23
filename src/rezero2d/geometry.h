@@ -36,6 +36,22 @@ class Point {
   double y_ = 0.0;
 };
 
+class Rect {
+ public:
+  Rect();
+  ~Rect();
+
+  Rect(const Rect& other);
+  Rect& operator=(const Rect& other);
+
+  Rect(Rect&& other);
+  Rect& operator=(Rect&& other);
+
+ private:
+  Point min_;
+  Point max_;
+};
+
 } // namespace rezero
 
 #endif // REZERO_GEOMETRY_H_
