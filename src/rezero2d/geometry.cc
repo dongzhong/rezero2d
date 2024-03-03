@@ -2,6 +2,8 @@
 
 #include "rezero2d/geometry.h"
 
+#include <cmath>
+#include <numeric>
 #include <utility>
 
 namespace rezero {
@@ -65,6 +67,11 @@ Rect::Rect() = default;
 
 Rect::~Rect() = default;
 
+Rect::Rect(double min_x, double min_y, double max_x, double max_y)
+    : min_(Point(min_x, min_y)), max_(Point(max_x, max_y)) {}
+
+Rect::Rect(const Point& min, const Point& max) : min_(min), max_(max) {}
+
 Rect::Rect(const Rect& other) = default;
 
 Rect& Rect::operator=(const Rect& other) = default;
@@ -74,6 +81,17 @@ Rect::Rect(Rect&& other) : min_(std::move(other.min_)), max_(std::move(other.max
 Rect& Rect::operator=(Rect&& other) {
   *this = std::move(other);
   return *this;
+}
+
+bool Rect::IsValid() const {
+  return !(std::min(min_.x_, max_.x_) < min_.x_ || std::min(min_.y_, max_.y_) < min_.y_);
+}
+
+Rect Rect::Union(const Rect& other) {
+  return Rect(std::min(min_.x_, other.min_.x_),
+              std::min(min_.y_, other.min_.y_),
+              std::max(max_.x_, other.max_.x_),
+              std::max(max_.y_, other.max_.y_));
 }
 
 } // namespace rezero

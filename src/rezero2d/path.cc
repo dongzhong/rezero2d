@@ -4,7 +4,7 @@
 
 #include <limits>
 
-#include "rezero2d/edge_builder.h"
+#include "rezero2d/raster/edge_builder.h"
 
 namespace rezero {
 
