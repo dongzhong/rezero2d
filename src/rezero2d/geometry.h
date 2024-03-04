@@ -29,18 +29,26 @@ class Point {
   void Reset(const Point& other);
   void Reset(double x_value, double y_value);
 
-  double GetX() const { return x_; }
-  void SetX(double x_value);
-
-  double GetY() const { return y_; }
-  void SetY(double y_value);
-
- private:
-  double x_ = 0.0;
-  double y_ = 0.0;
-
-  friend class Rect;
+  double x = 0.0;
+  double y = 0.0;
 };
+
+static inline Point operator-(const Point& self) { return Point{-self.x, -self.y}; }
+
+static inline Point operator+(const Point& p, double a) { return Point{p.x + a, p.y + a}; }
+static inline Point operator-(const Point& p, double a) { return Point{p.x - a, p.y - a}; }
+static inline Point operator*(const Point& p, double a) { return Point{p.x * a, p.y * a}; }
+static inline Point operator/(const Point& p, double a) { return Point{p.x / a, p.y / a}; }
+
+static inline Point operator+(double a, const Point& p) { return Point{a + p.x, a + p.y}; }
+static inline Point operator-(double a, const Point& p) { return Point{a - p.x, a - p.y}; }
+static inline Point operator*(double a, const Point& p) { return Point{a * p.x, a * p.y}; }
+static inline Point operator/(double a, const Point& p) { return Point{a / p.x, a / p.y}; }
+
+static inline Point operator+(const Point& a, const Point& b) { return Point{a.x + b.x, a.y + b.y}; }
+static inline Point operator-(const Point& a, const Point& b) { return Point{a.x - b.x, a.y - b.y}; }
+static inline Point operator*(const Point& a, const Point& b) { return Point{a.x * b.x, a.y * b.y}; }
+static inline Point operator/(const Point& a, const Point& b) { return Point{a.x / b.x, a.y / b.y}; }
 
 class Rect {
  public:
@@ -74,30 +82,23 @@ class Rect {
   Rect(Rect&& other);
   Rect& operator=(Rect&& other);
 
-  const Point& GetMin() const { return min_; }
-  const Point& GetMax() const { return max_; }
-
   bool IsValid() const;
 
-  std::uint32_t CalculateX0OutFlags(const Point& p) const { return std::uint32_t(p.x_ < min_.x_) << 0; }
-  std::uint32_t CalculateX1OutFlags(const Point& p) const { return std::uint32_t(p.x_ > max_.x_) << 1; }
-  std::uint32_t CalculateY0OutFlags(const Point& p) const { return std::uint32_t(p.y_ < min_.y_) << 2; }
-  std::uint32_t CalculateY1OutFlags(const Point& p) const { return std::uint32_t(p.y_ > max_.y_) << 3; }
+  std::uint32_t CalculateX0OutFlags(const Point& p) const { return std::uint32_t(p.x < min_x) << 0; }
+  std::uint32_t CalculateX1OutFlags(const Point& p) const { return std::uint32_t(p.x > max_x) << 1; }
+  std::uint32_t CalculateY0OutFlags(const Point& p) const { return std::uint32_t(p.y < min_y) << 2; }
+  std::uint32_t CalculateY1OutFlags(const Point& p) const { return std::uint32_t(p.y > max_y) << 3; }
 
   std::uint32_t CalculateXOutFlags(const Point& p) const { return CalculateX0OutFlags(p) | CalculateX1OutFlags(p); }
   std::uint32_t CalculateYOutFlags(const Point& p) const { return CalculateY0OutFlags(p) | CalculateY1OutFlags(p); }
   std::uint32_t CalculateOutFlags(const Point& p) const { return CalculateXOutFlags(p) | CalculateYOutFlags(p); }
 
-  void SetMinX(double x) { min_.x_ = x; }
-  void SetMinY(double y) { min_.y_ = y; }
-  void SetMaxX(double x) { max_.x_ = x; }
-  void SetMaxY(double y) { max_.y_ = y; }
-
   Rect Union(const Rect& other);
 
- private:
-  Point min_;
-  Point max_;
+  double min_x;
+  double min_y;
+  double max_x;
+  double max_y;
 };
 
 } // namespace rezero

@@ -24,8 +24,8 @@ void EdgeBuilder::SetTolerance(double tolerance) {
 }
 
 void EdgeBuilder::Begin() {
-  border_X0Y0_ = border_X1Y0_ = clipping_box_.GetMin().GetX();
-  border_X0Y1_ = border_X1Y1_ = clipping_box_.GetMin().GetY();
+  border_X0Y0_ = border_X1Y0_ = clipping_box_.min_x;
+  border_X0Y1_ = border_X1Y1_ = clipping_box_.min_y;
 }
 
 void EdgeBuilder::End() {
@@ -100,10 +100,10 @@ void EdgeBuilder::LineTo(EdgeSource& source, const Point& p, State& state) {
     if (!p0_flags) {
       p1_flags = clipping_box_.CalculateOutFlags(p1);
       if (!p1_flags) {
-        x0_coord = static_cast<std::int32_t>(p0.GetX());
-        y0_coord = static_cast<std::int32_t>(p0.GetY());
-        x1_coord = static_cast<std::int32_t>(p1.GetX());
-        y1_coord = static_cast<std::int32_t>(p1.GetY());
+        x0_coord = static_cast<std::int32_t>(p0.x);
+        y0_coord = static_cast<std::int32_t>(p0.y);
+        x1_coord = static_cast<std::int32_t>(p1.x);
+        y1_coord = static_cast<std::int32_t>(p1.y);
 
         while (true) {
           if (y0_coord < y1_coord) {
@@ -112,7 +112,7 @@ DescendingBegin:
             BeginDescending();
             current_edge_.Append(x0_coord, y0_coord);
             current_edge_.Append(x1_coord, y1_coord);
-            bounding_box_.SetMinY(std::min(static_cast<std::int32_t>(bounding_box_.GetMin().GetY()), y0_coord));
+            bounding_box_.min_y = std::min(static_cast<std::int32_t>(bounding_box_.min_y), y0_coord);
 
             while (true) {
 DescendingLoop:
@@ -121,7 +121,7 @@ DescendingLoop:
 
               if (!source.MaybeNextLineTo(p1)) {
                 EndDescending();
-                bounding_box_.SetMaxY(std::max(static_cast<std::int32_t>(bounding_box_.GetMax().GetY()), y0_coord));
+                bounding_box_.max_y = std::max(static_cast<std::int32_t>(bounding_box_.max_y), y0_coord);
                 p0 = p1;
                 return;
               }
@@ -134,8 +134,8 @@ DescendingLoop:
 
               x0_coord = x1_coord;
               y0_coord = y1_coord;
-              x1_coord = static_cast<std::int32_t>(p1.GetX());
-              y1_coord = static_cast<std::int32_t>(p1.GetY());
+              x1_coord = static_cast<std::int32_t>(p1.x);
+              y1_coord = static_cast<std::int32_t>(p1.y);
 
               if (y0_coord > y1_coord) {
                 EndDescending();
@@ -151,7 +151,7 @@ AscendingBegin:
             BeginAscending();
             current_edge_.Append(x0_coord, y0_coord);
             current_edge_.Append(x1_coord, y1_coord);
-            bounding_box_.SetMaxY(std::max(static_cast<std::int32_t>(bounding_box_.GetMax().GetY()), y0_coord));
+            bounding_box_.max_y = std::max(static_cast<std::int32_t>(bounding_box_.max_y), y0_coord);
 
             while (true) {
 AscendingLoop:
@@ -160,7 +160,7 @@ AscendingLoop:
 
               if (!source.MaybeNextLineTo(p1)) {
                 EndAscending();
-                bounding_box_.SetMinY(std::min(static_cast<std::int32_t>(bounding_box_.GetMin().GetY()), y0_coord));
+                bounding_box_.min_y = std::min(static_cast<std::int32_t>(bounding_box_.min_y), y0_coord);
                 p0 = p1;
                 return;
               }
@@ -173,8 +173,8 @@ AscendingLoop:
 
               x0_coord = x1_coord;
               y0_coord = y1_coord;
-              x1_coord = static_cast<std::int32_t>(p1.GetX());
-              y1_coord = static_cast<std::int32_t>(p1.GetY());
+              x1_coord = static_cast<std::int32_t>(p1.x);
+              y1_coord = static_cast<std::int32_t>(p1.y);
               if (y0_coord < y1_coord) {
                 EndAscending();
                 goto DescendingBegin;
@@ -199,15 +199,15 @@ AscendingLoop:
 
             x0_coord = x1_coord;
             y0_coord = y1_coord;
-            x1_coord = static_cast<std::int32_t>(p1.GetX());
-            y1_coord = static_cast<std::int32_t>(p1.GetY());
+            x1_coord = static_cast<std::int32_t>(p1.x);
+            y1_coord = static_cast<std::int32_t>(p1.y);
           }
         }
       }
 
 BeforeClipEndPoint:
       clipped_start = p0;
-      diff_01 = Point(p1.GetX() - p0.GetX(), p1.GetY() - p0.GetY());
+      diff_01 = p1 - p0;
     } else {
       double border_y0;
       double border_y1;
@@ -216,7 +216,7 @@ RestartClipLoop:
       // Skip all lines that are out of clipping_box_ or at its border.
       if (p0_flags & std::uint32_t(Rect::OutSideFlags::kY0)) {
         while (true) {
-          if (clipping_box_.GetMin().GetY() < p1.GetY()) {
+          if (clipping_box_.min_y < p1.y) {
             break;
           }
 
@@ -230,11 +230,11 @@ RestartClipLoop:
         p0_flags = clipping_box_.CalculateOutFlags(p0);
         p1_flags = clipping_box_.CalculateOutFlags(p1);
 
-        border_y0 = clipping_box_.GetMin().GetY();
+        border_y0 = clipping_box_.min_y;
 
         auto common_flags = p0_flags & p1_flags;
         if (common_flags) {
-          border_y1 = std::min(clipping_box_.GetMax().GetY(), p1.GetY());
+          border_y1 = std::min(clipping_box_.max_y, p1.y);
           if (common_flags & std::uint32_t(Rect::OutSideFlags::kX0)) {
             AccumulateLeftBorder(border_y0, border_y1);
           } else {
@@ -247,7 +247,7 @@ RestartClipLoop:
         }
       } else if (p0_flags & std::uint32_t(Rect::OutSideFlags::kY1)) {
         while (true) {
-          if (clipping_box_.GetMax().GetY() > p1.GetY()) {
+          if (clipping_box_.max_y > p1.y) {
             break;
           }
 
@@ -261,11 +261,11 @@ RestartClipLoop:
         p0_flags = clipping_box_.CalculateOutFlags(p0);
         p1_flags = clipping_box_.CalculateOutFlags(p1);
 
-        border_y0 = clipping_box_.GetMax().GetY();
+        border_y0 = clipping_box_.max_y;
 
         auto common_flags = p0_flags & p1_flags;
         if (common_flags) {
-          border_y1 = std::max(clipping_box_.GetMin().GetY(), p1.GetY());
+          border_y1 = std::max(clipping_box_.min_y, p1.y);
           if (common_flags & std::uint32_t(Rect::OutSideFlags::kX0)) {
             AccumulateLeftBorder(border_y0, border_y1);
           } else {
@@ -277,10 +277,10 @@ RestartClipLoop:
           continue;
         }
       } else if (p0_flags & std::uint32_t(Rect::OutSideFlags::kX0)) {
-        border_y0 = std::clamp(p0.GetY(), clipping_box_.GetMin().GetY(), clipping_box_.GetMax().GetY());
+        border_y0 = std::clamp(p0.y, clipping_box_.min_y, clipping_box_.max_y);
 
         while (true) {
-          if (clipping_box_.GetMin().GetX() < p1.GetX()) {
+          if (clipping_box_.min_x < p1.x) {
             break;
           }
 
@@ -288,7 +288,7 @@ RestartClipLoop:
 
           if (!source.MaybeNextLineTo(p1)) {
             p0_flags = clipping_box_.CalculateOutFlags(p0);
-            border_y1 = std::clamp(p0.GetY(), clipping_box_.GetMin().GetY(), clipping_box_.GetMax().GetY());
+            border_y1 = std::clamp(p0.y, clipping_box_.min_y, clipping_box_.max_y);
             if (border_y0 != border_y1) {
               AccumulateLeftBorder(border_y0, border_y1);
             }
@@ -296,7 +296,7 @@ RestartClipLoop:
           }
         }
 
-        border_y1 = std::clamp(p0.GetY(), clipping_box_.GetMin().GetY(), clipping_box_.GetMax().GetY());
+        border_y1 = std::clamp(p0.y, clipping_box_.min_y, clipping_box_.max_y);
         if (border_y0 != border_y1) {
           AccumulateLeftBorder(border_y0, border_y1);
         }
@@ -310,10 +310,10 @@ RestartClipLoop:
 
         border_y0 = border_y1;
       } else { // p0_flags & std::uint32_t(Rect::OutSideFlags::kX1)
-        border_y0 = std::clamp(p0.GetY(), clipping_box_.GetMin().GetY(), clipping_box_.GetMax().GetY());
+        border_y0 = std::clamp(p0.y, clipping_box_.min_y, clipping_box_.max_y);
 
         while (true) {
-          if (clipping_box_.GetMax().GetX() > p1.GetX()) {
+          if (clipping_box_.max_x > p1.x) {
             break;
           }
 
@@ -321,14 +321,14 @@ RestartClipLoop:
 
           if (!source.MaybeNextLineTo(p1)) {
             p0_flags = clipping_box_.CalculateOutFlags(p0);
-            border_y1 = std::clamp(p0.GetY(), clipping_box_.GetMin().GetY(), clipping_box_.GetMax().GetY());
+            border_y1 = std::clamp(p0.y, clipping_box_.min_y, clipping_box_.max_y);
             if (p0_flags != p1_flags) {
               AccumulateRightBorder(border_y0, border_y1);
             }
             return;
           }
 
-          border_y1 = std::clamp(p0.GetY(), clipping_box_.GetMin().GetY(), clipping_box_.GetMax().GetY());
+          border_y1 = std::clamp(p0.y, clipping_box_.min_y, clipping_box_.max_y);
 
           if (border_y0 != border_y1) {
             AccumulateRightBorder(border_y0, border_y1);
@@ -345,8 +345,8 @@ RestartClipLoop:
         }
       }
 
-      diff_01 = Point(p1.GetX() - p0.GetX(), p1.GetY() - p0.GetY());
-      clipped_start = clipping_box_.GetMax();
+      diff_01 = p1 - p0;
+      clipped_start = {clipping_box_.max_x, clipping_box_.max_y};
 
       switch (static_cast<Rect::OutSideFlags>(p0_flags)) {
         case Rect::OutSideFlags::kNone:
@@ -354,44 +354,44 @@ RestartClipLoop:
           break;
 
         case Rect::OutSideFlags::kX0Y0:
-          clipped_start.SetX(clipping_box_.GetMin().GetX());
+          clipped_start.x = clipping_box_.min_x;
           // [[fallthrough]]
         case Rect::OutSideFlags::kX1Y0:
-          clipped_start.SetY((clipped_start.GetX() - p0.GetX()) * diff_01.GetY() / diff_01.GetX() + p0.GetY());
+          clipped_start.y = (clipped_start.x - p0.x) * diff_01.y / diff_01.x + p0.y;
           p0_flags = clipping_box_.CalculateOutFlags(clipped_start);
 
-          if (clipped_start.GetY() >= clipping_box_.GetMin().GetY()) {
+          if (clipped_start.y >= clipping_box_.min_y) {
             break;
           }
           // [[fallthrough]]
         case Rect::OutSideFlags::kY0:
-          clipped_start.SetY(clipping_box_.GetMin().GetY());
-          clipped_start.SetX(p0.GetX() + (clipping_box_.GetMin().GetY() - p0.GetY()) * diff_01.GetX() / diff_01.GetY());
+          clipped_start.y = clipping_box_.min_y;
+          clipped_start.x = p0.x + (clipping_box_.min_y - p0.y) * diff_01.x / diff_01.y;
           p0_flags = clipping_box_.CalculateOutFlags(clipped_start);
           break;
 
         case Rect::OutSideFlags::kX0Y1:
-          clipped_start.SetX(clipping_box_.GetMin().GetX());
+          clipped_start.x = clipping_box_.min_x;
           // [[fallthrough]]
         case Rect::OutSideFlags::kX1Y1:
-          clipped_start.SetY((clipped_start.GetX() - p0.GetX()) * diff_01.GetY() / diff_01.GetX() + p0.GetY());
+          clipped_start.y = (clipped_start.x - p0.x) * diff_01.y / diff_01.x + p0.y;
           p0_flags = clipping_box_.CalculateOutFlags(clipped_start);
 
-          if (clipped_start.GetY() <= clipping_box_.GetMax().GetY()) {
+          if (clipped_start.y <= clipping_box_.max_y) {
             break;
           }
           // [[fallthrough]]
         case Rect::OutSideFlags::kY1:
-          clipped_start.SetY(clipping_box_.GetMax().GetY());
-          clipped_start.SetX(p0.GetX() + (clipping_box_.GetMax().GetY() - p0.GetY()) * diff_01.GetX() / diff_01.GetY());
+          clipped_start.y = clipping_box_.max_y;
+          clipped_start.x = p0.x + (clipping_box_.max_y - p0.y) * diff_01.x / diff_01.y;
           p0_flags = clipping_box_.CalculateOutFlags(clipped_start);
           break;
 
         case Rect::OutSideFlags::kX0:
-          clipped_start.SetX(clipping_box_.GetMin().GetX());
+          clipped_start.x = clipping_box_.min_x;
           // [[fallthrough]]
         case Rect::OutSideFlags::kX1:
-          clipped_start.SetY(p0.GetY() + (clipped_start.GetX() - p0.GetX()) * diff_01.GetY() / diff_01.GetX());
+          clipped_start.y = p0.y + (clipped_start.x - p0.x) * diff_01.y / diff_01.x;
           p0_flags = clipping_box_.CalculateOutFlags(clipped_start);
           break;
         default:
@@ -399,10 +399,10 @@ RestartClipLoop:
       }
 
       if (p0_flags) {
-        border_y1 = std::clamp(p1.GetY(), clipping_box_.GetMin().GetY(), clipping_box_.GetMax().GetY());
-        if (clipped_start.GetX() <= clipping_box_.GetMin().GetX()) {
+        border_y1 = std::clamp(p0.y, clipping_box_.min_y, clipping_box_.max_y);
+        if (clipped_start.x <= clipping_box_.min_x) {
           AccumulateLeftBorder(border_y0, border_y1);
-        } else if (clipped_start.GetX() >= clipping_box_.GetMax().GetX()) {
+        } else if (clipped_start.x >= clipping_box_.max_x) {
           AccumulateRightBorder(border_y0, border_y1);
         }
 
@@ -411,11 +411,11 @@ RestartClipLoop:
         continue;
       }
 
-      border_y1 = std::clamp(clipped_start.GetY(), clipping_box_.GetMin().GetY(), clipping_box_.GetMax().GetY());
+      border_y1 = std::clamp(clipped_start.y, clipping_box_.min_y, clipping_box_.max_y);
       if (border_y0 != border_y1) {
-        if (clipped_start.GetX() <= clipping_box_.GetMin().GetX()) {
+        if (clipped_start.x <= clipping_box_.min_x) {
           AccumulateLeftBorder(border_y0, border_y1);
-        } else if (clipped_start.GetX() >= clipping_box_.GetMax().GetX()) {
+        } else if (clipped_start.x >= clipping_box_.max_x) {
           AccumulateRightBorder(border_y0, border_y1);
         }
       }
@@ -424,10 +424,10 @@ RestartClipLoop:
         p0 = p1;
         p0_flags = 0;
 
-        x0_coord = static_cast<std::int32_t>(clipped_start.GetX());
-        y0_coord = static_cast<std::int32_t>(clipped_start.GetY());
-        x1_coord = static_cast<std::int32_t>(p1.GetX());
-        y1_coord = static_cast<std::int32_t>(p1.GetY());
+        x0_coord = static_cast<std::int32_t>(clipped_start.x);
+        y0_coord = static_cast<std::int32_t>(clipped_start.y);
+        x1_coord = static_cast<std::int32_t>(p1.x);
+        y1_coord = static_cast<std::int32_t>(p1.y);
 
         if (y0_coord == y1_coord) {
           continue;
@@ -443,42 +443,42 @@ RestartClipLoop:
 
     {
       // Calculate clipped_end...
-      Point clipped_end(clipping_box_.GetMax().GetX(), clipping_box_.GetMax().GetY());
+      Point clipped_end(clipping_box_.max_x, clipping_box_.max_y);
 
       switch (static_cast<Rect::OutSideFlags>(p1_flags)) {
         case Rect::OutSideFlags::kX0Y0:
-          clipped_end.SetX(clipping_box_.GetMin().GetX());
+          clipped_end.x = clipping_box_.min_x;
           // [[fallthrough]]
         case Rect::OutSideFlags::kX1Y0:
-          clipped_end.SetY(p0.GetY() + (clipped_end.GetX() - p0.GetX()) * diff_01.GetY() / diff_01.GetX());
-          if (clipped_end.GetY() >= clipping_box_.GetMin().GetY()) {
+          clipped_end.y = p0.y + (clipped_end.x - p0.x) * diff_01.y / diff_01.x;
+          if (clipped_end.y >= clipping_box_.min_y) {
             break;
           }
           // [[fallthrough]]
         case Rect::OutSideFlags::kY0:
-          clipped_end.SetY(clipping_box_.GetMin().GetY());
-          clipped_end.SetX(p0.GetX() + (clipped_end.GetY() - p0.GetY()) * diff_01.GetX() / diff_01.GetY());
+          clipped_end.y = clipping_box_.min_y;
+          clipped_end.x = p0.x + (clipped_end.y - p0.y) * diff_01.x / diff_01.y;
           break;
 
         case Rect::OutSideFlags::kX0Y1:
-          clipped_end.SetX(clipping_box_.GetMin().GetX());
+          clipped_end.x = clipping_box_.min_x;
           // [[fallthrough]]
         case Rect::OutSideFlags::kX1Y1:
-          clipped_end.SetY(p0.GetY() + (clipped_end.GetX() - p0.GetX()) * diff_01.GetY() / diff_01.GetX());
-          if (clipped_end.GetY() <= clipping_box_.GetMax().GetY()) {
+          clipped_end.y = p0.y + (clipped_end.x - p0.x) * diff_01.y / diff_01.x;
+          if (clipped_end.y <= clipping_box_.max_y) {
             break;
           }
           // [[fallthrough]]
         case Rect::OutSideFlags::kY1:
-          clipped_end.SetY(clipping_box_.GetMax().GetY());
-          clipped_end.SetX(p0.GetX() + (clipped_end.GetY() - p0.GetY()) * diff_01.GetX() / diff_01.GetY());
+          clipped_end.y = clipping_box_.max_y;
+          clipped_end.x = p0.x + (clipped_end.y - p0.y) * diff_01.x / diff_01.y;
           break;
 
         case Rect::OutSideFlags::kX0:
-          clipped_end.SetX(clipping_box_.GetMin().GetX());
+          clipped_end.x = clipping_box_.min_x;
           // [[fallthrough]]
         case Rect::OutSideFlags::kX1:
-          clipped_end.SetY(p0.GetY() + (clipped_end.GetX() - p0.GetX()) * diff_01.GetY() / diff_01.GetX());
+          clipped_end.y = p0.y + (clipped_end.x - p0.x) * diff_01.y / diff_01.x;
           break;
         default:
           break;
@@ -486,12 +486,12 @@ RestartClipLoop:
 
       AddLineSegment(clipped_start, clipped_end);
 
-      double clipped_p1y = std::clamp(p1.GetY(), clipping_box_.GetMin().GetY(), clipping_box_.GetMax().GetY());
-      if (clipped_end.GetY() != clipped_p1y) {
-        if (clipped_end.GetX() == clipping_box_.GetMin().GetX()) {
-          AccumulateLeftBorder(clipped_end.GetY(), clipped_p1y);
+      double clipped_p1y = std::clamp(p1.y, clipping_box_.min_y, clipping_box_.max_y);
+      if (clipped_end.y != clipped_p1y) {
+        if (clipped_end.x == clipping_box_.min_x) {
+          AccumulateLeftBorder(clipped_end.y, clipped_p1y);
         } else {
-          AccumulateRightBorder(clipped_end.GetY(), clipped_p1y);
+          AccumulateRightBorder(clipped_end.y, clipped_p1y);
         }
       }
     }
@@ -596,10 +596,10 @@ void EdgeBuilder::AccumulateRightBorder(double border_y0, double border_y1) {
 }
 
 void EdgeBuilder::AddLineSegment(const Point& p0, const Point& p1) {
-  std::int32_t x0_coord = static_cast<std::int32_t>(p0.GetX());
-  std::int32_t y0_coord = static_cast<std::int32_t>(p0.GetY());
-  std::int32_t x1_coord = static_cast<std::int32_t>(p1.GetX());
-  std::int32_t y1_coord = static_cast<std::int32_t>(p1.GetY());
+  std::int32_t x0_coord = static_cast<std::int32_t>(p0.x);
+  std::int32_t y0_coord = static_cast<std::int32_t>(p0.y);
+  std::int32_t x1_coord = static_cast<std::int32_t>(p1.x);
+  std::int32_t y1_coord = static_cast<std::int32_t>(p1.y);
 
   if (x0_coord == x1_coord) {
     return;
@@ -629,11 +629,11 @@ void EdgeBuilder::EmitLeftBorder() {
   auto min_y = std::min(y0, y1);
   auto max_y = std::max(y0, y1);
 
-  bounding_box_.SetMinY(std::min(min_y, static_cast<std::int32_t>(bounding_box_.GetMin().GetY())));
-  bounding_box_.SetMaxY(std::max(max_y, static_cast<std::int32_t>(bounding_box_.GetMax().GetY())));
+  bounding_box_.min_y = std::min(min_y, static_cast<std::int32_t>(bounding_box_.min_y));
+  bounding_box_.max_y = std::max(max_y, static_cast<std::int32_t>(bounding_box_.max_y));
 
-  AddCloseLine(static_cast<std::int32_t>(clipping_box_.GetMin().GetX()), y0,
-               static_cast<std::int32_t>(clipping_box_.GetMin().GetX()), y1);
+  AddCloseLine(static_cast<std::int32_t>(clipping_box_.min_x), y0,
+               static_cast<std::int32_t>(clipping_box_.min_x), y1);
 }
 
 void EdgeBuilder::EmitRightBorder() {
@@ -647,11 +647,11 @@ void EdgeBuilder::EmitRightBorder() {
   auto min_y = std::min(y0, y1);
   auto max_y = std::max(y0, y1);
 
-  bounding_box_.SetMinY(std::min(min_y, static_cast<std::int32_t>(bounding_box_.GetMin().GetY())));
-  bounding_box_.SetMaxY(std::max(max_y, static_cast<std::int32_t>(bounding_box_.GetMax().GetY())));
+  bounding_box_.min_y = std::min(min_y, static_cast<std::int32_t>(bounding_box_.min_y));
+  bounding_box_.max_y = std::max(max_y, static_cast<std::int32_t>(bounding_box_.max_y));
 
-  AddCloseLine(static_cast<std::int32_t>(clipping_box_.GetMax().GetX()), y0,
-               static_cast<std::int32_t>(clipping_box_.GetMax().GetX()), y1);
+  AddCloseLine(static_cast<std::int32_t>(clipping_box_.max_x), y0,
+               static_cast<std::int32_t>(clipping_box_.max_x), y1);
 }
 
 void EdgeBuilder::AddCloseLine(std::int32_t x0_coord, std::int32_t y0_coord,
@@ -659,12 +659,12 @@ void EdgeBuilder::AddCloseLine(std::int32_t x0_coord, std::int32_t y0_coord,
   EdgeDirection direction;
 
   if (y0_coord < y1_coord) {
-    bounding_box_.SetMinY(std::min(y0_coord, static_cast<std::int32_t>(bounding_box_.GetMin().GetY())));
-    bounding_box_.SetMaxY(std::max(y1_coord, static_cast<std::int32_t>(bounding_box_.GetMax().GetY())));
+    bounding_box_.min_y = std::min(y0_coord, static_cast<std::int32_t>(bounding_box_.min_y));
+    bounding_box_.max_y = std::max(y1_coord, static_cast<std::int32_t>(bounding_box_.max_y));
     direction = EdgeDirection::kDescending;
   } else {
-    bounding_box_.SetMinY(std::min(y1_coord, static_cast<std::int32_t>(bounding_box_.GetMin().GetY())));
-    bounding_box_.SetMaxY(std::max(y0_coord, static_cast<std::int32_t>(bounding_box_.GetMax().GetY())));
+    bounding_box_.min_y = std::min(y1_coord, static_cast<std::int32_t>(bounding_box_.min_y));
+    bounding_box_.max_y = std::max(y0_coord, static_cast<std::int32_t>(bounding_box_.max_y));
     direction = EdgeDirection::kAscending;
   }
 

@@ -118,7 +118,7 @@ bool EdgeSource::MaybeNextCubicTo(Point& p1, Point& p2, Point& p3) {
 void EdgeSource::NextConicTo(Point& p1, Point& p2, double& weight) {
   transform_.Apply(p1, *vertex_ptr_);
   transform_.Apply(p2, *(vertex_ptr_ + 2));
-  weight = (vertex_ptr_ + 1)->GetX();
+  weight = (vertex_ptr_ + 1)->x;
 
   cmd_ptr_ += 3;
   vertex_ptr_ += 3;
