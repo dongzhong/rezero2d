@@ -89,4 +89,74 @@ Rect Rect::Union(const Rect& other) {
               std::max(max_y, other.max_y));
 }
 
+namespace {
+
+/*
+ * A = p0        + p1 * (-2) + p2
+ * B = p0 * (-2) + p1 * 2
+ * C = p0
+ *
+ * V = (A * t + B) * t + C
+ */
+void CalculateQuadCoefficients(const Point p[3], Point& a, Point& b, Point& c) {
+  auto v1 = p[1] - p[0];
+  auto v2 = p[2] - p[1];
+
+  a = v2 - v1;
+  b = v1 + v1;
+  c = p[0];
+}
+
+} // namespace
+
+Point* QuadHelper::SplitQuadToSpline(const Point p[3], Point* out) {
+  Point pa, pb, pc;
+  CalculateQuadCoefficients(p, pa, pb, pc);
+
+  Point extrema_ts = (p[0] - p[1]) / (p[0] - p[1] * 2.0 + p[2]);
+  double extrema_t0 = std::min(extrema_ts.x, extrema_ts.y);
+  double extrema_t1 = std::max(extrema_ts.x, extrema_ts.y);
+
+  std::vector<double> ts;
+  if (extrema_t0 > 0.0 && extrema_t0 < 1.0) {
+    ts.push_back(extrema_t0);
+  }
+  if (extrema_t1 > std::max(extrema_t0, 0.0) && extrema_t1 < 1.0) {
+    ts.push_back(extrema_t1);
+  }
+
+  // If has extremas, split the curve to spline.
+  if (!ts.empty()) {
+    ts.push_back(1.0);
+
+    out[0] = p[0];
+    Point last = p[2];
+
+    std::size_t i = 0;
+    double t_cut = 0.0;
+
+    do {
+      double t_val = ts[i];
+
+      double dt = (t_val - t_cut) * 0.5;
+
+      // Derivative: 2 * a * t + b.
+      Point cp = (pa * (t_val * 2.0) + pb) * dt;
+      Point tp = (pa * t_val + pb) * t_val + pc;
+
+      if (++i == ts.size()) {
+        tp = last;
+      }
+
+      out[1].Reset(tp - cp);
+      out[2].Reset(tp);
+      out += 2;
+
+      t_cut = t_val;
+    } while (i != ts.size());
+  }
+
+  return out;
+}
+
 } // namespace rezero

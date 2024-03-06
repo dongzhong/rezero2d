@@ -12,10 +12,13 @@ set(REZERO2D_SOURCE
 
   rezero2d/raster/edge_builder.cc
   rezero2d/raster/edge_builder.h
+  rezero2d/raster/edge_builder_impl.h
   rezero2d/raster/edge_source.cc
   rezero2d/raster/edge_source.h
   rezero2d/raster/edge_storage.cc
   rezero2d/raster/edge_storage.h
+  rezero2d/raster/flatten_utils.cc
+  rezero2d/raster/flatten_utils.h
 
   rezero2d/utils/int_operations.h
 

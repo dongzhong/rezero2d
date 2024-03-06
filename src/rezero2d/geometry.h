@@ -101,6 +101,11 @@ class Rect {
   double max_y;
 };
 
+class QuadHelper {
+ public:
+  static Point* SplitQuadToSpline(const Point p[3], Point* out);
+};
+
 } // namespace rezero
 
 #endif // REZERO_GEOMETRY_H_

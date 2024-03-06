@@ -1,17 +1,18 @@
 // Created by DONG Zhong on 2024/02/22.
 
-#include "rezero2d/raster/edge_builder.h"
+#include "rezero2d/raster/edge_builder_impl.h"
 
 #include <limits>
 
 #include "rezero2d/base/logging.h"
+#include "rezero2d/raster/flatten_utils.h"
 
 namespace rezero {
 
 EdgeBuilder::EdgeBuilder(EdgeStorage* edge_storage) : EdgeBuilder(edge_storage, Rect{}, 0.0) {}
 
 EdgeBuilder::EdgeBuilder(EdgeStorage* edge_storage, const Rect& clipping_box, double tolerance)
-    : edge_storage_(edge_storage), clipping_box_(clipping_box), tolerance_(tolerance),
+    : edge_storage_(edge_storage), clipping_box_(clipping_box), tolerance_sq_(tolerance * tolerance),
       bounding_box_(Rect(std::numeric_limits<std::int32_t>::max(), std::numeric_limits<std::int32_t>::max(),
                          std::numeric_limits<std::int32_t>::min(), std::numeric_limits<std::int32_t>::min())) {
   REZERO_DCHECK(clipping_box.IsValid());
@@ -20,7 +21,7 @@ EdgeBuilder::EdgeBuilder(EdgeStorage* edge_storage, const Rect& clipping_box, do
 EdgeBuilder::~EdgeBuilder() = default;
 
 void EdgeBuilder::SetTolerance(double tolerance) {
-  tolerance_ = tolerance;
+  tolerance_sq_ = tolerance * tolerance;
 }
 
 void EdgeBuilder::Begin() {
@@ -502,15 +503,137 @@ RestartClipLoop:
 }
 
 void EdgeBuilder::QuadTo(EdgeSource& source, State& state) {
-  Point points[3];
+  // 2 extrams and 1 terminating '1.0' value.
+  constexpr std::uint32_t kMaxTCount = 2 + 1;
+  Point spline[kMaxTCount * 2 + 1];
+
   Point& p0 = state.p0;
-  Point& p1 = points[1];
-  Point& p2 = points[2];
+  Point& p1 = spline[1];
+  Point& p2 = spline[2];
+
+  std::uint32_t& p0_flags = state.flags;
+
   source.NextQuadTo(p1, p2);
 
-  // TODO:
+  while (true) {
+    auto p1_flags = clipping_box_.CalculateOutFlags(p1);
+    auto p2_flags = clipping_box_.CalculateOutFlags(p2);
 
-  p0 = p2;
+    auto flags = p0_flags & p1_flags & p2_flags;
+    if (flags) {
+      bool end = false;
+
+      while (true) {
+        if (flags & std::uint32_t(Rect::OutSideFlags::kY0)) {
+          while (true) {
+            p0 = p2;
+            if (!source.MaybeNextQuadTo(p1, p2)) {
+              end = true;
+              break;
+            }
+
+            if (p1.y > clipping_box_.min_y || p2.y > clipping_box_.min_y) {
+              break;
+            }
+          }
+        } else if (flags & std::uint32_t(Rect::OutSideFlags::kY1)) {
+          while (true) {
+            p0 = p2;
+            if (!source.MaybeNextQuadTo(p1, p2)) {
+              end = true;
+              break;
+            }
+
+            if (p1.y < clipping_box_.max_y || p2.y < clipping_box_.max_y) {
+              break;
+            }
+          }
+        } else {
+          double y0 = std::clamp(p0.y, clipping_box_.min_y, clipping_box_.max_y);
+
+          if (flags & std::uint32_t(Rect::OutSideFlags::kX0)) {
+            while (true) {
+              p0 = p2;
+
+              if (!source.MaybeNextQuadTo(p1, p2)) {
+                end = true;
+                break;
+              }
+
+              if (p1.x > clipping_box_.min_x || p2.x > clipping_box_.max_x) {
+                break;
+              }
+            }
+
+            double y1 = std::clamp(p0.y, clipping_box_.min_y, clipping_box_.max_y);
+            AccumulateLeftBorder(y0, y1);
+          } else {
+            while (true) {
+              p0 = p2;
+
+              if (!source.MaybeNextQuadTo(p1, p2)) {
+                end = true;
+                break;
+              }
+
+              if (p1.x < clipping_box_.max_x || p2.x < clipping_box_.max_x) {
+                break;
+              }
+            }
+
+            double y1 = std::clamp(p0.y, clipping_box_.min_y, clipping_box_.max_y);
+            AccumulateRightBorder(y0, y1);
+          }
+        }
+
+        p0_flags = clipping_box_.CalculateOutFlags(p0);
+        if (end) {
+          return;
+        }
+
+        continue;
+      }
+    }
+
+    spline[0] = p0;
+
+    Point* spline_ptr = spline;
+    Point* spline_end = spline_ptr;
+
+    spline_end = QuadHelper::SplitQuadToSpline(spline, spline_ptr);
+
+    if (spline_end == spline_ptr) {
+      spline_end = spline_ptr + 2;
+    }
+
+    FlattenMonoQuad mono_curve(tolerance_sq_);
+
+    flags = p0_flags | p1_flags | p2_flags;
+    if (flags) {
+      // Need clipping.
+      do {
+        EdgeDirection direction = (spline_ptr[0].y > spline_end[2].y) ?
+                                      EdgeDirection::kAscending : EdgeDirection::kDescending;
+        FlattenMonoCurveClipping<FlattenMonoQuad>(mono_curve, spline_ptr, direction);
+      } while ((spline_ptr += 2) != spline_end);
+
+      p0 = spline_end[0];
+      p0_flags = p2_flags;
+    } else {
+      // No clipping.
+      do {
+        EdgeDirection direction = (spline_ptr[0].y > spline_end[2].y) ?
+                                      EdgeDirection::kAscending : EdgeDirection::kDescending;
+        FlattenMonoCurve<FlattenMonoQuad>(mono_curve, spline_ptr, direction);
+      } while ((spline_ptr += 2) != spline_end);
+
+      p0 = spline_end[0];
+    }
+
+    if (!source.MaybeNextQuadTo(p1, p2)) {
+      return;
+    }
+  }
 }
 
 void EdgeBuilder::CubicTo(EdgeSource& source, State& state) {

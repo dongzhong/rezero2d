@@ -55,7 +55,13 @@ class EdgeBuilder {
 
   void AddCloseLine(std::int32_t x0_coord, std::int32_t y0_coord, std::int32_t x1_coord, std::int32_t y1_coord);
 
-  double tolerance_;
+  template <typename MonoCurveType>
+  void FlattenMonoCurve(MonoCurveType& mono_curve, const Point* src, EdgeDirection direction);
+
+  template <typename MonoCurveType>
+  void FlattenMonoCurveClipping(MonoCurveType& mono_curve, const Point* src, EdgeDirection direction);
+
+  double tolerance_sq_;
 
   Rect clipping_box_;
 
